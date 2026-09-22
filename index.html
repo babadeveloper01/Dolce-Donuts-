@@ -1,0 +1,328 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dolce Donuts - Premium POS</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+</head>
+<body>
+<div id="login-screen" class="login-overlay">
+    <div class="login-blob"></div><div class="login-blob"></div>
+    <div class="login-box">
+        <span class="login-logo">🍩</span>
+        <h2>Dolce Donuts</h2>
+        <p>Mall Of Sargodha &mdash; Premium POS System</p>
+        <input type="text" id="login-user" placeholder="Username" class="login-input" onkeydown="if(event.key==='Enter')document.getElementById('login-pass').focus()">
+        <input type="password" id="login-pass" placeholder="Password" class="login-input" onkeydown="if(event.key==='Enter')handleLogin()">
+        <button class="login-btn" onclick="handleLogin()"><i class="fa-solid fa-right-to-bracket"></i> Login to System</button>
+    </div>
+</div>
+<div id="print-area" style="display:none;"></div>
+<div id="fb-status" style="display:none;position:fixed;top:10px;right:10px;z-index:9999;background:rgba(15,15,32,.95);border:1px solid rgba(245,166,35,.3);color:#f5a623;padding:8px 16px;border-radius:8px;font-size:12px;font-weight:700;font-family:Inter,sans-serif;box-shadow:0 4px 20px rgba(0,0,0,.4);"></div>
+<div class="app-container" id="main-app" style="display:none;">
+    <aside class="sidebar">
+        <div class="brand">
+            <span class="brand-logo">🍩</span>
+            <h2>Dolce Donuts <span class="dot"></span></h2>
+            <p>Mall Of Sargodha</p>
+        </div>
+        <ul class="nav-links">
+            <li class="active" onclick="switchTab('pos',event)"><i class="fa-solid fa-cash-register"></i> POS / New Sale</li>
+            <li onclick="switchTab('dashboard',event)"><i class="fa-solid fa-chart-pie"></i> Dashboard</li>
+            <li onclick="switchTab('cakes',event)"><i class="fa-solid fa-birthday-cake"></i> Cake Orders</li>
+            <li onclick="switchTab('inventory',event)"><i class="fa-solid fa-boxes-stacked"></i> Inventory</li>
+            <li onclick="switchTab('reports',event)"><i class="fa-solid fa-file-invoice-dollar"></i> Reports &amp; Excel</li>
+            <li onclick="switchTab('settings',event)"><i class="fa-solid fa-gear"></i> Settings &amp; Backup</li>
+        </ul>
+        <div class="user-info">
+            <div class="user-avatar" id="user-avatar-letter">A</div>
+            <div><strong id="logged-user-name">Admin</strong>
+            <small onclick="logout()" style="cursor:pointer;color:#f5a623;display:block;">Logout</small></div>
+        </div>
+    </aside>
+    <main class="main-content">
+        <header class="top-header">
+            <div class="store-meta">
+                <span><i class="fa-solid fa-location-dot"></i> Mall Of Sargodha</span>
+                <span><i class="fa-solid fa-phone"></i> +92 322 7704444</span>
+            </div>
+            <div class="header-right">
+                <span id="live-clock"></span>
+                <span style="display:inline-flex;align-items:center;gap:5px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);border-radius:99px;padding:4px 10px;">
+                    <span id="fb-dot" style="width:8px;height:8px;border-radius:50%;background:#f59e0b;display:inline-block;transition:.3s;" title="Firebase: Checking..."></span>
+                    <span id="fb-label" style="font-size:10.5px;color:#94a3b8;font-weight:600;">Connecting...</span>
+                </span>
+                <button class="btn-shift" onclick="toggleShift()"><i class="fa-solid fa-clock-rotate-left"></i> Shift: Open</button>
+            </div>
+        </header>
+        <section id="tab-pos" class="tab-pane active-tab">
+            <div class="pos-card">
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;">
+                    <input type="text" id="customer-name" placeholder="👤  Customer Name" style="padding:11px 14px;font-size:14px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);color:#f1f5f9;border-radius:9px;outline:none;font-family:inherit;width:100%;">
+                    <input type="text" id="customer-mobile" placeholder="📱  Mobile No." style="padding:11px 14px;font-size:14px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);color:#f1f5f9;border-radius:9px;outline:none;font-family:inherit;width:100%;">
+                </div>
+                <div style="display:flex;gap:10px;margin-bottom:14px;">
+                    <input type="text" id="product-search" placeholder="🔍  Type name/barcode to search... [F1]" oninput="filterProducts()" onkeyup="filterProducts()" style="flex:1;padding:12px 14px;font-size:14px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);color:#f1f5f9;border-radius:9px;outline:none;font-family:inherit;">
+                    <button onclick="document.getElementById('product-search').value='';filterProducts();" style="padding:0 16px;background:rgba(245,166,35,.15);border:1px solid rgba(245,166,35,.3);color:#f5a623;border-radius:9px;font-weight:700;cursor:pointer;white-space:nowrap;font-family:inherit;">Clear</button>
+                </div>
+                <div id="category-container" style="display:flex;gap:8px;margin-bottom:14px;overflow-x:auto;padding-bottom:4px;"></div>
+                <div id="product-grid" style="display:grid;grid-template-columns:repeat(5,1fr);gap:10px;max-height:155px;overflow-y:auto;margin-bottom:18px;background:rgba(255,255,255,.015);border-radius:10px;padding:12px;"></div>
+                <div class="order-heading"><i class="fa-solid fa-receipt" style="color:#f5a623;"></i> Current Order &nbsp;<span class="cart-badge" id="cart-count">0</span> items</div>
+                <div style="overflow-x:auto;margin-bottom:16px;border-radius:10px;border:1px solid rgba(255,255,255,.07);">
+                    <table style="width:100%;border-collapse:collapse;background:transparent;">
+                        <thead><tr style="background:rgba(255,255,255,.03);">
+                            <th style="padding:10px 12px;border-bottom:1px solid rgba(255,255,255,.07);color:#64748b;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;text-align:left;">Product</th>
+                            <th style="padding:10px 12px;border-bottom:1px solid rgba(255,255,255,.07);color:#64748b;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;text-align:left;">Variant</th>
+                            <th style="padding:10px 12px;border-bottom:1px solid rgba(255,255,255,.07);color:#64748b;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;text-align:left;">Qty</th>
+                            <th style="padding:10px 12px;border-bottom:1px solid rgba(255,255,255,.07);color:#64748b;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;text-align:left;">Price</th>
+                            <th style="padding:10px 12px;border-bottom:1px solid rgba(255,255,255,.07);color:#64748b;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;text-align:left;">Total</th>
+                            <th style="padding:10px 12px;border-bottom:1px solid rgba(255,255,255,.07);color:#64748b;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;text-align:left;">Del</th>
+                        </tr></thead>
+                        <tbody id="cart-items-table"><tr><td colspan="6" style="text-align:center;color:#64748b;padding:28px;font-size:13px;">Cart khali hai. Product select karein.</td></tr></tbody>
+                    </table>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr 1.5fr;gap:18px;background:rgba(255,255,255,.03);padding:16px;border-radius:12px;border:1px solid rgba(255,255,255,.07);align-items:center;">
+                    <div style="font-size:14px;line-height:2.2;">
+                        <div style="color:#94a3b8;">Gross: <strong id="cart-gross" style="color:#f5a623;">Rs. 0</strong></div>
+                        <div style="color:#94a3b8;">Discount: <input type="number" id="cart-discount" value="0" onchange="calculateCart()" style="width:75px;padding:4px 8px;border-radius:6px;font-size:13px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:#f1f5f9;outline:none;"></div>
+                        <div style="font-size:18px;font-weight:900;margin-top:2px;color:#94a3b8;">Net: <span id="cart-net">Rs. 0</span></div>
+                    </div>
+                    <div>
+                        <label style="font-size:12px;font-weight:700;display:block;margin-bottom:6px;color:#94a3b8;">Payment Method</label>
+                        <select id="payment-method-select" style="width:100%;padding:9px 10px;font-weight:700;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:#f1f5f9;border-radius:7px;font-family:inherit;outline:none;">
+                            <option value="Cash">💵 Cash</option>
+                            <option value="Card">💳 Card</option>
+                            <option value="Digital">📱 Digital Pay</option>
+                            <option value="Credit">📖 Udhaar Khata</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label style="font-size:12px;font-weight:700;display:block;margin-bottom:5px;color:#94a3b8;">Cash Given [F8]</label>
+                        <div style="display:flex;gap:5px;margin-bottom:8px;">
+                            <input type="number" id="cash-given-input" value="0" oninput="calculateBaqaya()" style="flex:1;padding:9px 10px;border-radius:7px;font-size:15px;font-weight:700;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:#f1f5f9;outline:none;">
+                            <button onclick="setCashExact()" style="padding:6px 9px;border-radius:5px;cursor:pointer;font-size:11px;font-weight:700;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);color:#f1f5f9;font-family:inherit;">Exact</button>
+                            <button onclick="addCashAmount(500)" style="padding:6px 8px;border-radius:5px;cursor:pointer;font-size:11px;font-weight:700;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);color:#f1f5f9;font-family:inherit;">500</button>
+                            <button onclick="addCashAmount(1000)" style="padding:6px 8px;border-radius:5px;cursor:pointer;font-size:11px;font-weight:700;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);color:#f1f5f9;font-family:inherit;">1k</button>
+                            <button onclick="addCashAmount(5000)" style="padding:6px 8px;border-radius:5px;cursor:pointer;font-size:11px;font-weight:700;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);color:#f1f5f9;font-family:inherit;">5k</button>
+                        </div>
+                        <div style="font-size:13px;color:#94a3b8;">Baqaya: <strong id="cash-baqaya" style="font-size:16px;color:#22c55e;">Rs. 0</strong></div>
+                    </div>
+                </div>
+                <div style="display:flex;gap:14px;margin-top:16px;">
+                    <button onclick="processCheckout('Print')" style="flex:1;padding:14px;font-size:15px;font-weight:800;cursor:pointer;background:linear-gradient(135deg,#1a56db,#1e40af);color:#fff;border:none;border-radius:10px;box-shadow:0 4px 18px rgba(59,130,246,.4);font-family:inherit;transition:.2s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='none'"><i class="fa-solid fa-print"></i> Print &amp; Save [F2]</button>
+                    <button onclick="processCheckout('WhatsApp')" style="flex:1;padding:14px;font-size:15px;font-weight:800;cursor:pointer;background:linear-gradient(135deg,#16a34a,#15803d);color:#fff;border:none;border-radius:10px;box-shadow:0 4px 18px rgba(34,197,94,.35);font-family:inherit;transition:.2s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='none'"><i class="fa-brands fa-whatsapp"></i> WhatsApp [F3]</button>
+                </div>
+            </div>
+        </section>
+        <section id="tab-dashboard" class="tab-pane">
+            <h2 style="margin-bottom:18px;"><i class="fa-solid fa-chart-pie" style="color:#f5a623;margin-right:10px;"></i>Dashboard</h2>
+            <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:18px;margin-bottom:22px;">
+                <div class="stat-card"><span class="stat-icon">💰</span><h3>Today Sales</h3><p id="dash-day-sales">Rs. 0</p></div>
+                <div class="stat-card"><span class="stat-icon">📅</span><h3>This Month</h3><p id="dash-month-sales">Rs. 0</p></div>
+                <div class="stat-card"><span class="stat-icon">📊</span><h3>Overall Sales</h3><p id="dash-total-sales">Rs. 0</p></div>
+                <div class="stat-card"><span class="stat-icon">🧾</span><h3>Total Bills</h3><p id="dash-total-transactions">0</p></div>
+            </div>
+            <div class="table-container">
+                <h3 style="padding:16px 18px 0;"><i class="fa-solid fa-chart-bar" style="color:#f5a623;margin-right:8px;"></i>Product-Wise Sales</h3>
+                <table class="data-table" style="width:100%;margin-top:8px;">
+                    <thead><tr><th>#</th><th>Product</th><th>Qty</th><th>Revenue</th></tr></thead>
+                    <tbody id="product-sales-summary"><tr><td colspan="4" style="text-align:center;color:#64748b;padding:20px;">No sales yet</td></tr></tbody>
+                </table>
+            </div>
+        </section>
+
+        <section id="tab-cakes" class="tab-pane">
+            <h2 style="margin-bottom:18px;"><i class="fa-solid fa-birthday-cake" style="color:#f5a623;margin-right:10px;"></i>Custom Cake Orders</h2>
+            <div style="background:rgba(15,15,32,.8);padding:22px;border-radius:16px;border:1px solid rgba(255,255,255,.07);margin-bottom:20px;">
+                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:14px;">
+                    <div><label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:6px;color:#94a3b8;">Customer &amp; Phone</label><input type="text" id="cake-customer" placeholder="Ali - 0300..." class="form-control" style="width:100%;padding:9px 12px;"></div>
+                    <div><label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:6px;color:#94a3b8;">Flavor / Design</label><input type="text" id="cake-details" placeholder="Chocolate Fudge..." class="form-control" style="width:100%;padding:9px 12px;"></div>
+                    <div><label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:6px;color:#94a3b8;">Weight</label><input type="text" id="cake-weight" placeholder="2 Pound" class="form-control" style="width:100%;padding:9px 12px;"></div>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:16px;">
+                    <div><label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:6px;color:#94a3b8;">Pickup Date</label><input type="date" id="cake-date" class="form-control" style="width:100%;padding:9px 12px;"></div>
+                    <div><label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:6px;color:#94a3b8;">Advance (Rs)</label><input type="number" id="cake-advance" placeholder="500" class="form-control" style="width:100%;padding:9px 12px;"></div>
+                    <div><label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:6px;color:#94a3b8;">Total Price (Rs)</label><input type="number" id="cake-total-price" placeholder="2000" class="form-control" style="width:100%;padding:9px 12px;"></div>
+                </div>
+                <button onclick="saveCakeOrder()" style="padding:10px 20px;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-family:inherit;background:linear-gradient(135deg,#22c55e,#16a34a);color:#fff;"><i class="fa-solid fa-plus"></i> Save Cake Order</button>
+            </div>
+            <div class="table-container">
+                <h3 style="padding:16px 18px 0;"><i class="fa-solid fa-list" style="color:#f5a623;margin-right:8px;"></i>All Cake Orders</h3>
+                <table class="data-table" style="width:100%;margin-top:8px;">
+                    <thead><tr><th>ID</th><th>Customer</th><th>Flavor</th><th>Weight</th><th>Date</th><th>Advance/Total</th><th>Status</th><th>Action</th></tr></thead>
+                    <tbody id="cake-orders-list"></tbody>
+                </table>
+            </div>
+        </section>
+
+        <section id="tab-inventory" class="tab-pane">
+            <h2 style="margin-bottom:18px;"><i class="fa-solid fa-boxes-stacked" style="color:#f5a623;margin-right:10px;"></i>Product Inventory</h2>
+            <div style="background:rgba(15,15,32,.8);padding:22px;border-radius:16px;border:1px solid rgba(255,255,255,.07);margin-bottom:20px;">
+                <input type="hidden" id="edit-product-index" value="-1">
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;">
+                    <div><label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:6px;color:#94a3b8;">Item Code / Barcode</label><input type="text" id="inv-item-code" placeholder="e.g. DNT-001" class="form-control" style="width:100%;padding:9px 12px;"></div>
+                    <div><label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:6px;color:#94a3b8;">Product Name</label><input type="text" id="inv-product-name" placeholder="e.g. Special Donut" class="form-control" style="width:100%;padding:9px 12px;"></div>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;">
+                    <div><label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:6px;color:#94a3b8;">Category</label><select id="inv-category-select" class="form-control" style="width:100%;padding:9px 12px;"></select></div>
+                    <div><label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:6px;color:#94a3b8;">Variant / Model</label><input type="text" id="inv-model-color" placeholder="e.g. Glazed" class="form-control" style="width:100%;padding:9px 12px;"></div>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:18px;">
+                    <div><label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:6px;color:#94a3b8;">Cost Price</label><input type="number" id="inv-cost-price" placeholder="150" class="form-control" style="width:100%;padding:9px 12px;"></div>
+                    <div><label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:6px;color:#94a3b8;">Base Selling Price (Tax 16% auto add)</label><input type="number" id="inv-sell-price" placeholder="e.g. 250 → Final: Rs.290" class="form-control" oninput="updateTaxPreview()" style="width:100%;padding:9px 12px;"><div id="tax-preview"></div></div>
+                </div>
+                <div style="display:flex;gap:10px;">
+                    <button id="save-product-btn" onclick="saveInventoryProduct()" style="padding:10px 20px;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-family:inherit;background:linear-gradient(135deg,#22c55e,#16a34a);color:#fff;"><i class="fa-solid fa-plus"></i> Add To Inventory</button>
+                    <button id="cancel-edit-btn" onclick="resetInventoryForm()" style="display:none;padding:10px 18px;border:1px solid rgba(100,116,139,.3);border-radius:8px;font-weight:600;cursor:pointer;font-family:inherit;background:rgba(100,116,139,.15);color:#94a3b8;">Cancel Edit</button>
+                </div>
+            </div>
+            <div class="table-container">
+                <h3 style="padding:16px 18px 0;"><i class="fa-solid fa-list" style="color:#f5a623;margin-right:8px;"></i>All Inventory</h3>
+                <table class="data-table" style="width:100%;margin-top:8px;">
+                    <thead><tr><th>Code</th><th>Product</th><th>Category</th><th>Variant</th><th>Cost</th><th>Sell</th><th>Margin</th><th>Actions</th></tr></thead>
+                    <tbody id="inventory-list"></tbody>
+                </table>
+            </div>
+        </section>
+
+        <section id="tab-reports" class="tab-pane">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;">
+                <h2><i class="fa-solid fa-file-invoice-dollar" style="color:#f5a623;margin-right:10px;"></i>Sales Reports</h2>
+                <button onclick="exportReportsToExcel()" style="padding:9px 16px;border:none;border-radius:7px;font-weight:700;cursor:pointer;font-family:inherit;background:linear-gradient(135deg,#22c55e,#16a34a);color:#fff;"><i class="fa-solid fa-file-excel"></i> Export CSV</button>
+            </div>
+            <div style="background:rgba(15,15,32,.8);padding:16px 18px;border-radius:14px;border:1px solid rgba(255,255,255,.07);margin-bottom:18px;display:flex;gap:14px;align-items:flex-end;">
+                <div><label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:6px;color:#94a3b8;">Date Filter</label>
+                <input type="date" id="filter-report-date" onchange="renderReportsTable()" style="padding:8px 12px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);color:#f1f5f9;border-radius:8px;outline:none;font-family:inherit;"></div>
+                <button onclick="document.getElementById('filter-report-date').value='';renderReportsTable();" style="padding:8px 14px;border:1px solid rgba(255,255,255,.1);border-radius:7px;cursor:pointer;font-weight:600;font-family:inherit;background:rgba(255,255,255,.05);color:#94a3b8;">Reset</button>
+            </div>
+            <div class="table-container">
+                <h3 style="padding:16px 18px 0;"><i class="fa-solid fa-history" style="color:#f5a623;margin-right:8px;"></i>Sales History</h3>
+                <table class="data-table" style="width:100%;margin-top:8px;">
+                    <thead><tr><th>Invoice</th><th>Date &amp; Time</th><th>Customer</th><th>Mobile</th><th>Payment</th><th>Amount</th></tr></thead>
+                    <tbody id="reports-list"></tbody>
+                </table>
+            </div>
+            <div style="margin-top:22px;background:rgba(15,15,32,.8);padding:20px;border-radius:16px;border:1px solid rgba(255,255,255,.07);">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+                    <h3 style="margin:0;"><i class="fa-solid fa-box-open" style="color:#f5a623;margin-right:8px;"></i>Product-Wise Daily Report</h3>
+                    <button onclick="exportProductDailyCSV()" style="padding:8px 14px;border:none;border-radius:7px;font-weight:700;cursor:pointer;font-family:inherit;background:linear-gradient(135deg,#f5a623,#e09415);color:#000;font-size:12px;"><i class="fa-solid fa-download"></i> Download Sheet</button>
+                </div>
+                <div style="display:flex;gap:10px;margin-bottom:14px;align-items:flex-end;">
+                    <div><label style="font-size:11px;font-weight:700;text-transform:uppercase;display:block;margin-bottom:5px;color:#94a3b8;">Select Date</label>
+                    <input type="date" id="filter-daily-date" onchange="renderProductDailyReport()" style="padding:8px 12px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);color:#f1f5f9;border-radius:8px;outline:none;font-family:inherit;"></div>
+                    <button onclick="document.getElementById('filter-daily-date').value='';renderProductDailyReport();" style="padding:8px 12px;border:1px solid rgba(255,255,255,.1);border-radius:7px;cursor:pointer;font-weight:600;font-family:inherit;background:rgba(255,255,255,.05);color:#94a3b8;font-size:12px;">All</button>
+                </div>
+                <div id="daily-total-box"></div>
+                <table class="data-table" style="width:100%;"><thead><tr><th>#</th><th>Product Name</th><th>Qty Sold</th><th>Revenue</th></tr></thead>
+                <tbody id="product-daily-list"><tr><td colspan="4" style="text-align:center;color:#64748b;padding:20px;">Date select karein</td></tr></tbody></table>
+            </div>
+            <div style="margin-top:22px;margin-bottom:22px;background:rgba(15,15,32,.8);padding:20px;border-radius:16px;border:1px solid rgba(255,255,255,.07);">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+                    <h3 style="margin:0;"><i class="fa-solid fa-calendar-alt" style="color:#f5a623;margin-right:8px;"></i>Monthly Sales Summary</h3>
+                    <button onclick="exportMonthlyCSV()" style="padding:8px 14px;border:none;border-radius:7px;font-weight:700;cursor:pointer;font-family:inherit;background:linear-gradient(135deg,#a855f7,#7c3aed);color:#fff;font-size:12px;"><i class="fa-solid fa-download"></i> Download Sheet</button>
+                </div>
+                <table class="data-table" style="width:100%;"><thead><tr><th>Month</th><th>Total Sales</th><th>Bills</th><th>Top Product</th></tr></thead>
+                <tbody id="monthly-list"><tr><td colspan="4" style="text-align:center;color:#64748b;padding:20px;">No data yet</td></tr></tbody></table>
+            </div>
+        </section>
+        <section id="tab-settings" class="tab-pane">
+            <h2 style="margin-bottom:18px;"><i class="fa-solid fa-gear" style="color:#f5a623;margin-right:10px;"></i>Settings &amp; Data Management</h2>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px;">
+                <div style="grid-column:1/-1;background:rgba(15,15,32,.8);padding:22px;border-radius:16px;border:1px solid rgba(255,255,255,.07);">
+                    <h3><i class="fa-solid fa-tags" style="color:#f5a623;margin-right:8px;"></i>Category Manager</h3>
+                    <div style="display:flex;gap:10px;margin-top:14px;">
+                        <input type="text" id="new-cat-input" placeholder="New Category (e.g. Donuts)" class="form-control" style="flex:1;padding:9px 12px;">
+                        <button onclick="addNewCategoryFromSettings()" style="padding:9px 18px;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-family:inherit;background:linear-gradient(135deg,#f5a623,#e09415);color:#000;">Add Category</button>
+                    </div>
+                    <div id="existing-categories-list" style="margin-top:14px;display:flex;flex-wrap:wrap;gap:8px;"></div>
+                </div>
+                <div style="grid-column:1/-1;background:rgba(15,15,32,.8);padding:22px;border-radius:16px;border:1px solid rgba(255,255,255,.07);">
+                    <h3><i class="fa-solid fa-percent" style="color:#f5a623;margin-right:8px;"></i>GST Tax Settings</h3>
+                    <p style="font-size:13px;color:#64748b;margin:10px 0 16px;">16% GST automatically product price par add ho — is toggle se on/off karein.</p>
+                    <div style="display:flex;align-items:center;gap:18px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:16px 18px;">
+                        <div style="flex:1;">
+                            <div style="font-weight:700;color:#f1f5f9;font-size:14px;">16% GST Tax</div>
+                            <div style="font-size:12px;color:#64748b;margin-top:4px;">ON hone par: product base price + 16% tax = final price<br>OFF hone par: jo price likho wahi final price hogi</div>
+                        </div>
+                        <div style="display:flex;flex-direction:column;align-items:center;gap:6px;">
+                            <label class="tax-toggle-switch">
+                                <input type="checkbox" id="tax-toggle-input" onchange="toggleTaxSetting()" checked>
+                                <span class="tax-slider-round"></span>
+                            </label>
+                            <span id="tax-toggle-label" style="font-size:11px;font-weight:700;color:#22c55e;">GST ON</span>
+                        </div>
+                    </div>
+                    <div style="margin-top:12px;background:rgba(245,166,35,.08);border:1px solid rgba(245,166,35,.2);border-radius:8px;padding:10px 14px;font-size:12px;color:#f5a623;">
+                        <strong>NTN:</strong> J797098 &nbsp;|&nbsp; <strong>GST Rate:</strong> 16% &nbsp;|&nbsp; <strong>Print par:</strong> "Inclusive of GST. @ 16%" show hoga jab tax ON ho
+                    </div>
+                </div>
+                <div style="background:rgba(15,15,32,.8);padding:22px;border-radius:16px;border:1px solid rgba(255,255,255,.07);">
+                    <h3><i class="fa-solid fa-key" style="color:#f5a623;margin-right:8px;"></i>Admin Credentials</h3>
+                    <p style="font-size:13px;color:#64748b;margin:10px 0 14px;">Username aur password change karein.</p>
+                    <div style="display:flex;flex-direction:column;gap:10px;">
+                        <div><label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:5px;color:#94a3b8;">New Username</label><input type="text" id="new-admin-user" placeholder="New username" class="form-control" style="width:100%;padding:9px 12px;"></div>
+                        <div><label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:5px;color:#94a3b8;">Current Password (Verify)</label><input type="password" id="old-admin-pass" placeholder="Current password" class="form-control" style="width:100%;padding:9px 12px;"></div>
+                        <div><label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:5px;color:#94a3b8;">New Password</label><input type="password" id="new-admin-pass" placeholder="Min 4 chars" class="form-control" style="width:100%;padding:9px 12px;"></div>
+                        <div><label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:5px;color:#94a3b8;">Confirm Password</label><input type="password" id="confirm-admin-pass" placeholder="Confirm password" class="form-control" style="width:100%;padding:9px 12px;"></div>
+                        <button onclick="changeAdminCredentials()" style="padding:10px 18px;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-family:inherit;background:linear-gradient(135deg,#f5a623,#e09415);color:#000;"><i class="fa-solid fa-floppy-disk"></i> Save Credentials</button>
+                    </div>
+                </div>
+                <div style="background:rgba(15,15,32,.8);padding:22px;border-radius:16px;border:1px solid rgba(255,255,255,.07);">
+                    <h3><i class="fa-solid fa-users" style="color:#f5a623;margin-right:8px;"></i>Staff Accounts</h3>
+                    <p style="font-size:13px;color:#64748b;margin:10px 0 14px;">Staff add karein jo login kar sakein.</p>
+                    <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:14px;">
+                        <div><label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:5px;color:#94a3b8;">Username</label><input type="text" id="staff-user" placeholder="e.g. Kashif" class="form-control" style="width:100%;padding:9px 12px;"></div>
+                        <div><label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:5px;color:#94a3b8;">Password</label><input type="password" id="staff-pass" placeholder="Staff password" class="form-control" style="width:100%;padding:9px 12px;"></div>
+                        <div><label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:5px;color:#94a3b8;">Role</label><input type="text" id="staff-role" placeholder="Cashier / Manager" class="form-control" style="width:100%;padding:9px 12px;"></div>
+                        <button onclick="addStaffAccount()" style="padding:10px 18px;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-family:inherit;background:linear-gradient(135deg,#22c55e,#16a34a);color:#fff;"><i class="fa-solid fa-user-plus"></i> Add Staff Account</button>
+                    </div>
+                    <div id="staff-list"></div>
+                </div>
+                <div style="background:rgba(15,15,32,.8);padding:22px;border-radius:16px;border:1px solid rgba(255,255,255,.07);">
+                    <h3><i class="fa-solid fa-database" style="color:#f5a623;margin-right:8px;"></i>Backup &amp; Restore</h3>
+                    <p style="font-size:13px;color:#64748b;margin:12px 0;">Data JSON file mein save ya restore karein.</p>
+                    <div style="display:flex;gap:10px;flex-wrap:wrap;">
+                        <button onclick="backupDataJSON()" style="padding:10px 18px;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-family:inherit;background:linear-gradient(135deg,#22c55e,#16a34a);color:#fff;"><i class="fa-solid fa-download"></i> Download Backup</button>
+                        <input type="file" id="restore-file-input" style="display:none;" onchange="restoreDataJSON(event)">
+                        <button onclick="document.getElementById('restore-file-input').click()" style="padding:10px 18px;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-family:inherit;background:linear-gradient(135deg,#3b82f6,#1d4ed8);color:#fff;"><i class="fa-solid fa-upload"></i> Restore Backup</button>
+                    </div>
+                </div>
+                <div style="grid-column:1/-1;background:rgba(15,15,32,.8);padding:22px;border-radius:16px;border-left:3px solid #ef4444;border-top:1px solid rgba(239,68,68,.15);border-right:1px solid rgba(255,255,255,.07);border-bottom:1px solid rgba(255,255,255,.07);">
+                    <h3 style="color:#ef4444;display:flex;align-items:center;gap:10px;"><i class="fa-solid fa-triangle-exclamation"></i> Danger Zone <span style="font-size:11px;font-weight:500;color:#64748b;background:rgba(100,116,139,.15);border:1px solid rgba(100,116,139,.2);border-radius:99px;padding:2px 10px;">Developer Only</span></h3>
+                    <p style="font-size:13px;color:#64748b;margin:10px 0;">Saara data permanently delete — Developer password se lock hai.</p>
+                    <div id="danger-lock-screen" style="display:flex;align-items:center;gap:14px;margin-top:14px;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);border-radius:10px;padding:16px;">
+                        <div style="font-size:32px;">🔒</div>
+                        <div style="flex:1;"><div style="font-weight:700;color:#ef4444;">Danger Zone Locked</div><div style="font-size:12px;color:#64748b;margin-top:3px;">Sirf developer is zone ko unlock kar sakta hai</div></div>
+                        <button onclick="unlockDangerZone()" style="background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.3);color:#ef4444;padding:10px 20px;border-radius:8px;cursor:pointer;font-weight:700;font-family:inherit;" onmouseover="this.style.background='rgba(239,68,68,.28)'" onmouseout="this.style.background='rgba(239,68,68,.15)'"><i class="fa-solid fa-lock-open"></i> Unlock</button>
+                    </div>
+                    <div id="danger-actions" style="display:none;margin-top:14px;">
+                        <div style="background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);border-radius:10px;padding:16px;">
+                            <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;"><span style="font-size:22px;">🔓</span><strong style="color:#ef4444;">Unlocked — Savdhani se kaam karein!</strong></div>
+                            <div style="display:flex;gap:10px;">
+                                <button onclick="clearAllSystemData()" style="padding:10px 20px;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-family:inherit;background:linear-gradient(135deg,#ef4444,#dc2626);color:#fff;"><i class="fa-solid fa-trash"></i> Clear All Data</button>
+                                <button onclick="lockDangerZone()" style="padding:10px 18px;border:1px solid rgba(100,116,139,.3);border-radius:8px;font-weight:600;cursor:pointer;font-family:inherit;background:rgba(100,116,139,.15);color:#94a3b8;"><i class="fa-solid fa-lock"></i> Lock Again</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+</div>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="firebase-config.js"></script>
+<script src="script.js"></script>
+<div id="thermal-slip-overlay" class="slip-overlay" style="display:none;" onclick="if(event.target===this)closeThermalSlip()">
+    <div class="slip-paper">
+        <div id="thermal-slip-content" style="padding:10px 12px;"></div>
+        <div class="slip-controls">
+            <button class="slip-btn-print" onclick="printThermalSlip()">🖨️ Print Receipt</button>
+            <button class="slip-btn-close" onclick="closeThermalSlip()">✕ Close</button>
+        </div>
+    </div>
+</div></body>
+</html>
